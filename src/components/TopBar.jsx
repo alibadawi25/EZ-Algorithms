@@ -52,7 +52,6 @@ export default function TopBar({
         value={algorithm}
         onChange={(e) => {
           setAlgorithm(e.target.value);
-          onReset();
         }}
       >
         <optgroup label="── Graph ──">

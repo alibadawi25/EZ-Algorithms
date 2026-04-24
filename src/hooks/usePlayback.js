@@ -11,8 +11,13 @@ export function usePlayback() {
 
   const speed = SPEEDS[preset]
   const total = steps.length
+  const maxIdx = Math.max(0, total - 1)
   const step  = steps[idx] ?? null
   const pct   = total > 1 ? (idx / (total - 1)) * 100 : 0
+
+  useEffect(() => {
+    setIdx(i => Math.max(0, Math.min(i, maxIdx)))
+  }, [maxIdx])
 
   useEffect(() => {
     clearInterval(timerRef.current)
@@ -42,9 +47,17 @@ export function usePlayback() {
   }, [])
 
   const stepBack    = useCallback(() => setIdx(i => Math.max(0, i - 1)), [])
-  const stepForward = useCallback(() => setIdx(i => Math.min(total - 1, i + 1)), [total])
-  const jumpTo      = useCallback((i) => setIdx(Math.max(0, Math.min(total - 1, i))), [total])
-  const togglePlay  = useCallback(() => setPlaying(p => !p), [])
+  const stepForward = useCallback(() => setIdx(i => Math.min(maxIdx, i + 1)), [maxIdx])
+  const jumpTo      = useCallback((i) => setIdx(Math.max(0, Math.min(maxIdx, i))), [maxIdx])
+  const togglePlay  = useCallback(() => {
+    if (total === 0) return
+    if (playing) {
+      setPlaying(false)
+      return
+    }
+    setIdx(i => (i >= maxIdx ? 0 : i))
+    setPlaying(true)
+  }, [playing, total, maxIdx])
 
   return {
     steps, step, idx, total, pct, playing, preset,

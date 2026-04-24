@@ -40,7 +40,10 @@ export default function FloatingControls({
             <select
               className="fc-target-select"
               value={searchTarget}
-              onChange={(e) => setSearchTarget(+e.target.value)}
+              onChange={(e) => {
+                setSearchTarget(+e.target.value);
+                e.target.blur();
+              }}
               aria-label="Search target"
             >
               {targetOptions.map((value) => (

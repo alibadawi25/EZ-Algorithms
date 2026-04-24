@@ -22,6 +22,8 @@ import {
 import { TEMPLATES } from "./data/templates";
 
 export default function App() {
+  const GRAPH_ALGOS = ["bfs", "dfs"];
+
   // ── mode / algo ──────────────────────────────────────────────────
   const [canvasMode, setCanvasMode] = useState("graph");
   const [algorithm, setAlgorithm] = useState("bfs");
@@ -30,6 +32,15 @@ export default function App() {
   const [array, setArray] = useState([38, 27, 43, 3, 9, 82, 10]);
   const [rawArr, setRawArr] = useState("38, 27, 43, 3, 9, 82, 10");
   const [searchTgt, setSearchTgt] = useState(43);
+  const arrayRef = useRef(array);
+
+  const updateArray = useCallback((next) => {
+    setArray((prev) => {
+      const resolved = typeof next === "function" ? next(prev) : next;
+      arrayRef.current = resolved;
+      return resolved;
+    });
+  }, []);
 
   // ── UI ───────────────────────────────────────────────────────────
   const [leftOpen, setLeftOpen] = useState(true);
@@ -101,6 +112,7 @@ export default function App() {
 
   // ── Visualize ────────────────────────────────────────────────────
   function handleVisualize() {
+    const currentArray = arrayRef.current;
     if (canvasMode === "graph" && graph.nodes.length === 0) {
       showToast("Add some nodes first!", "warn");
       return;
@@ -113,18 +125,18 @@ export default function App() {
     } else if (algorithm === "dfs") {
       s = genDFS(graph.nodes, graph.edges, graph.startId);
     } else if (algorithm === "bubble-sort") {
-      s = genBubble(array);
+      s = genBubble(currentArray);
     } else if (algorithm === "selection-sort") {
-      s = genSelectionSort(array);
+      s = genSelectionSort(currentArray);
     } else if (algorithm === "insertion-sort") {
-      s = genInsertionSort(array);
+      s = genInsertionSort(currentArray);
     } else if (algorithm === "binary-search") {
-      const sorted = [...array].sort((a, b) => a - b);
-      setArray(sorted);
+      const sorted = [...currentArray].sort((a, b) => a - b);
+      updateArray(sorted);
       setRawArr(sorted.join(", "));
       s = genBinarySearch(sorted, searchTgt);
     } else if (algorithm === "linear-search") {
-      s = genLinearSearch(array, searchTgt);
+      s = genLinearSearch(currentArray, searchTgt);
     }
 
     pb.load(s);
@@ -143,7 +155,10 @@ export default function App() {
   // ── Sidebar click ────────────────────────────────────────────────
   function handleSidebarItem(item) {
     handleReset();
-    if (item.algo) setAlgorithm(item.algo);
+    if (item.algo) {
+      setAlgorithm(item.algo);
+      setCanvasMode(GRAPH_ALGOS.includes(item.algo) ? "graph" : "array");
+    }
     if (item.canvasMode) setCanvasMode(item.canvasMode);
     if (item.tpl === "bst") {
       graph.load(
@@ -164,7 +179,7 @@ export default function App() {
       showToast("Graph template loaded");
     }
     if (item.tpl === "array") {
-      setArray([38, 27, 43, 3, 9, 82, 10]);
+      updateArray([38, 27, 43, 3, 9, 82, 10]);
       setRawArr("38, 27, 43, 3, 9, 82, 10");
       setCanvasMode("array");
     }
@@ -195,8 +210,12 @@ export default function App() {
 
   // ── Shuffle array ────────────────────────────────────────────────
   function handleShuffle() {
-    const a = [...array].sort(() => Math.random() - 0.5);
-    setArray(a);
+    const a = [...arrayRef.current];
+    for (let i = a.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [a[i], a[j]] = [a[j], a[i]];
+    }
+    updateArray(a);
     setRawArr(a.join(", "));
     handleReset();
   }
@@ -223,6 +242,11 @@ export default function App() {
     }
   }, [algorithm, array, searchTgt]);
 
+  useEffect(() => {
+    const targetMode = GRAPH_ALGOS.includes(algorithm) ? "graph" : "array";
+    setCanvasMode((prev) => (prev === targetMode ? prev : targetMode));
+  }, [algorithm]);
+
   // ── Derived ──────────────────────────────────────────────────────
   const vizActive = pb.active;
   const step = pb.step;
@@ -247,10 +271,9 @@ export default function App() {
         setCanvasMode={(v) => {
           setCanvasMode(v);
           handleReset();
-          const graphAlgos = ["bfs", "dfs"];
-          if (v === "array" && graphAlgos.includes(algorithm))
+          if (v === "array" && GRAPH_ALGOS.includes(algorithm))
             setAlgorithm("bubble-sort");
-          if (v === "graph" && !graphAlgos.includes(algorithm))
+          if (v === "graph" && !GRAPH_ALGOS.includes(algorithm))
             setAlgorithm("bfs");
         }}
         onVisualize={handleVisualize}
@@ -342,7 +365,7 @@ export default function App() {
                 setSearchTarget={setSearchTgt}
                 rawArr={rawArr}
                 setRawArr={setRawArr}
-                setArray={setArray}
+                setArray={updateArray}
                 onShuffle={handleShuffle}
                 onReset={handleReset}
               />
